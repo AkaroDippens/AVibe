@@ -1,0 +1,283 @@
+package com.example.avibe.ui.theme.player
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
+import com.example.avibe.data.model.MediaType
+import kotlinx.coroutines.delay
+import com.example.avibe.data.model.MediaItem as AppMediaItem
+
+// Bottom player sheet for media player
+@androidx.annotation.OptIn(UnstableApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BottomPlayerSheet(
+    exoPlayer: ExoPlayer,
+    media: AppMediaItem?,
+    isPlaying: Boolean,
+    speed: Float,
+    reverb: Float,
+    onPlayPause: () -> Unit,
+    onSpeedChange: (Float) -> Unit,
+    onReverbChange: (Float) -> Unit,
+    onReset: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (media == null) return
+    var isEngineReady by remember { mutableStateOf(false) }
+
+    // Current position and duration of the media
+    var currentPosition by remember { mutableStateOf(0L) }
+    var duration by remember { mutableStateOf(0L) }
+    var isSeeking by remember { mutableStateOf(false) } // Flag to track if the user is seeking (dragging the slider)
+
+    val effectsEngine = remember { AudioEffectsEngine(exoPlayer) }
+
+    // Initialize the effects engine
+    DisposableEffect(media) {
+        exoPlayer.playWhenReady = isPlaying
+
+        val listener = object : Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                if (audioSessionId != 0) {
+                    effectsEngine.init()
+                    isEngineReady = true
+                }
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_READY) {
+                    duration = exoPlayer.duration
+                }
+            }
+        }
+        exoPlayer.addListener(listener)
+
+        if (exoPlayer.audioSessionId != 0) {
+            effectsEngine.init()
+            isEngineReady = true
+        }
+
+        onDispose {
+            exoPlayer.removeListener(listener)
+        }
+    }
+
+    // Update the current position and duration (if not seeking)
+    LaunchedEffect(isPlaying, isSeeking) {
+        while (isPlaying && !isSeeking) {
+            currentPosition = exoPlayer.currentPosition
+            duration = exoPlayer.duration.takeIf { it > 0 } ?: duration
+            delay(500) // Update every 0.5 seconds
+        }
+    }
+
+    LaunchedEffect(isPlaying) {
+        exoPlayer.playWhenReady = isPlaying
+    }
+
+    LaunchedEffect(speed) {
+        effectsEngine.setSlowed(speed)
+    }
+
+    LaunchedEffect(reverb) {
+        if (isEngineReady) {
+            effectsEngine.setReverb(reverb)
+        }
+    }
+
+    // Formatting the time in minutes and seconds
+    fun formatTime(ms: Long): String {
+        val totalSeconds = ms / 1000
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
+        return "%02d:%02d".format(minutes, seconds)
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.height(if (media.type == MediaType.MP4) 650.dp else 500.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // If it's a video then showing it
+            if (media.type == MediaType.MP4) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .background(Color.Black)
+                ) {
+                    AndroidView(
+                        factory = { ctx ->
+                            PlayerView(ctx).apply {
+                                player = exoPlayer
+                                useController = true
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Information about the media
+            Text(
+                text = media.name,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
+            Text(
+                text = media.type.name,
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            // Seek bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = formatTime(currentPosition),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Slider(
+                    value = currentPosition.toFloat(),
+                    onValueChange = { newValue ->
+                        // While seeking, update the current position
+                        currentPosition = newValue.toLong()
+                        isSeeking = true
+                    },
+                    onValueChangeFinished = {
+                        // When seeking is finished, set the player position
+                        isSeeking = false
+                        exoPlayer.seekTo(currentPosition)
+                    },
+                    valueRange = 0f..duration.toFloat().coerceAtLeast(1f),
+                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                )
+
+                Text(
+                    text = formatTime(duration),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            // Speed control
+            Text("Скорость: ${"%.2f".format(speed)}x")
+            Slider(
+                value = speed,
+                onValueChange = { newValue ->
+                    val stepSize = 0.05f
+                    val stepped = (newValue / stepSize).toInt() * stepSize
+                    onSpeedChange(stepped)
+                },
+                valueRange = 0.5f..2f,
+                steps = ((2f - 0.5f) / 0.05f).toInt() - 1
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Reverb control
+            Text("Реверберация: ${"%.0f".format(reverb)}%")
+            Slider(
+                value = reverb,
+                onValueChange = onReverbChange,
+                valueRange = 0f..100f,
+                steps = 100
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                IconButton(
+                    onClick = onPlayPause,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary,
+                            androidx.compose.foundation.shape.RoundedCornerShape(28.dp)
+                        )
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Пауза" else "Воспроизвести",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = {
+                        effectsEngine.reset()
+                        onReset()
+                    },
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(
+                            MaterialTheme.colorScheme.secondaryContainer,
+                            androidx.compose.foundation.shape.RoundedCornerShape(28.dp)
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Сбросить",
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+        }
+    }
+}

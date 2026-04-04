@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">AVibe</string>
+    <string name="title_activity_library_screen">LibraryScreen</string>
+    <string name="title_activity_media_item_card">MediaItemCard</string>
+    <string name="title_activity_mini_player">MiniPlayer</string>
+    <string name="title_activity_player_screen">PlayerScreen</string>
+</resources>
