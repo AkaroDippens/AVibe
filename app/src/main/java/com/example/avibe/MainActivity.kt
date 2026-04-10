@@ -55,6 +55,7 @@ class MainActivity : ComponentActivity() {
         mediaRepository = MediaRepository(this)
         exoPlayer = ExoPlayer.Builder(this).build().apply {
             volume = 1.0f
+            repeatMode = Player.REPEAT_MODE_ALL
         }
 
         createNotificationChannel()
@@ -91,7 +92,6 @@ class MainActivity : ComponentActivity() {
             var pickType by remember { mutableStateOf<MediaType?>(null) }
 
             DisposableEffect(exoPlayer) {
-
                 val listener = object : Player.Listener {
                     override fun onMediaItemTransition(
                         mediaItem: androidx.media3.common.MediaItem?,
@@ -198,6 +198,7 @@ class MainActivity : ComponentActivity() {
 
                             exoPlayer.setMediaItems(mediaItems, startIndex, C.TIME_UNSET)
                             exoPlayer.prepare()
+                            exoPlayer.play()
 
                             // Updating UI state
                             currentMedia = item

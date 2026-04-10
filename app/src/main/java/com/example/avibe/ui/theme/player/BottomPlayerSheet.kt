@@ -86,8 +86,6 @@ fun BottomPlayerSheet(
 
     // Initialize the effects engine
     DisposableEffect(media) {
-        exoPlayer.playWhenReady = isPlaying
-
         val listener = object : Player.Listener {
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
                 if (audioSessionId != 0) {
