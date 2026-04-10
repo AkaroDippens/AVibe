@@ -360,7 +360,7 @@ class MainActivity : ComponentActivity() {
                     return null
                 }
             })
-            .setSmallIconResourceId(androidx.media3.session.R.drawable.media_session_service_notification_ic_music_note)
+            .setSmallIconResourceId(R.drawable.ic_notification)
             .build()
             .also { manager ->
                 manager.setPlayer(exoPlayer)

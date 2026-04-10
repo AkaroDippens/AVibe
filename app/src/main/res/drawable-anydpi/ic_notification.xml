@@ -1,0 +1,45 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <group
+        android:scaleX="1.1"
+        android:scaleY="1.1"
+        android:pivotX="12"
+        android:pivotY="0">
+
+    <!-- Headphones band -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M2,12a10,10 0 1,1 20,0h-2a8,8 0 1,0 -16,0z"/>
+
+    <!-- Left ear -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M2,12h3v5H2"/>
+
+    <!-- Right ear -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M19.2,12h2.8v5H19.1z"/>
+
+    <!-- Sunglasses frame -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M7.565,10.2h8v0.6h-9z"/>
+
+    <!-- Left glass -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M6.2,11a2.5,2.5 0 1,0 5,0a2.5,1.5 0 1,0 -5,0"/>
+
+    <!-- Right glass -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12.8,11a2.5,2.5 0 1,0 5,0a2.5,1.5 0 1,0 -5,0"/>
+
+    </group>
+
+</vector>
