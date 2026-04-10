@@ -26,3 +26,6 @@ output-metadata.json
 
 # Google Services
 google-services.json
+
+# Backup files
+*~
