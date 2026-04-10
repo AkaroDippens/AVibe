@@ -87,10 +87,10 @@ class AudioEffectsEngine(private val player: ExoPlayer) {
                     // Normal: 2-4 sec.
                     // CONCERT (80%+): A sharp jump to 6-8 seconds for a long tail.
                     val decayTime = if (reverbLevel >= 80) {
-                        // Экспоненциальный рост для режима концерта
+                        // Exponential growth for concert mode
                         (6000 + ((reverbLevel - 80) / 20) * 2000).toInt()
                     } else {
-                        // Плавный рост для обычных значений
+                        // Smooth growth for normal values
                         (2000 + (intensity * 3000)).toInt()
                     }
 

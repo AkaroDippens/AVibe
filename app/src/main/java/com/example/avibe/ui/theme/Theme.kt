@@ -1,6 +1,5 @@
 package com.example.avibe.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -12,27 +11,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
+private val DarkColorScheme = darkColorScheme(
+    primary = NeonPurple,
+    onPrimary = DarkBg,
+    primaryContainer = Color(0xFF4A1EA8),
+    onPrimaryContainer = NeonPurple,
 
-val DarkBlueBackground = Color(0xFF0A0E17)        // Глубокий тёмно-синий фон
-val CardBackground = Color(0xFF151C29)            // Фон карточек
-val CardBorder = Color(0xFF3B82F6)                // Неоновый синий контур
-val CardBorderGlow = Color(0xFF60A5FA)            // Свечение контура
-val TextPrimary = Color(0xFFF1F5F9)               // Белый текст
-val TextSecondary = Color(0xFF94A3B8)             // Серый текст
-val AccentPurple = Color(0xFF8B5CF6)              // Фиолетовый акцент
-val AccentCyan = Color(0xFF22D3EE)
+    secondary = NeonCyan,
+    onSecondary = DarkBg,
+    secondaryContainer = Color(0xFF00447F),
+    onSecondaryContainer = NeonCyan,
 
-val DarkColorScheme = darkColorScheme(
-    primary = AccentPurple,
-    secondary = AccentCyan,
-    background = DarkBlueBackground,
-    surface = CardBackground,
-    onPrimary = Color.White,
+    tertiary = NeonPink,
+    onTertiary = Color(0xFFFFFFFF),
+
+    background = DarkBg,
     onBackground = TextPrimary,
+
+    surface = SurfaceDark,
     onSurface = TextPrimary,
-    onSurfaceVariant = TextSecondary,
-    primaryContainer = CardBackground.copy(alpha = 0.8f),
-    onPrimaryContainer = TextPrimary
+
+    error = Color(0xFFFF6B6B),
+    onError = Color(0xFF000000)
 )
 
 private val LightColorScheme = lightColorScheme(

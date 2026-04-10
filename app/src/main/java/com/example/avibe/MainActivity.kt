@@ -1,6 +1,9 @@
 package com.example.avibe
 
-import android.app.*
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -13,8 +16,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.*
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.documentfile.provider.DocumentFile
@@ -28,11 +35,11 @@ import androidx.media3.ui.PlayerNotificationManager
 import com.example.avibe.data.model.MediaItem
 import com.example.avibe.data.model.MediaRepository
 import com.example.avibe.data.model.MediaType
+import com.example.avibe.ui.theme.AVibeTheme
 import com.example.avibe.ui.theme.components.AddMediaDialog
 import com.example.avibe.ui.theme.components.MiniPlayer
 import com.example.avibe.ui.theme.library.LibraryScreen
 import com.example.avibe.ui.theme.player.BottomPlayerSheet
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 @UnstableApi
@@ -76,22 +83,38 @@ class MainActivity : ComponentActivity() {
             var isPlaying by remember { mutableStateOf(false) }
             var showAddDialog by remember { mutableStateOf(false) }
             var showPlayer by remember { mutableStateOf(false) }
+            var isDarkTheme by remember { mutableStateOf(true) }
+            var isThemeLoaded by remember { mutableStateOf(false) }
 
             var speed by remember { mutableStateOf(1f) }
             var reverb by remember { mutableStateOf(0f) }
             var pickType by remember { mutableStateOf<MediaType?>(null) }
 
-            LaunchedEffect(exoPlayer) {
-                snapshotFlow { exoPlayer.currentMediaItem }
-                    .distinctUntilChanged()
-                    .collect { mediaItem ->
+            DisposableEffect(exoPlayer) {
+
+                val listener = object : Player.Listener {
+                    override fun onMediaItemTransition(
+                        mediaItem: androidx.media3.common.MediaItem?,
+                        reason: Int
+                    ) {
                         val newMedia = mediaList.find { item ->
                             item.uri == mediaItem?.localConfiguration?.uri?.toString()
                         }
                         if (newMedia != null) {
                             currentMedia = newMedia
+                            isPlaying = exoPlayer.isPlaying
                         }
                     }
+
+                    override fun onIsPlayingChanged(playing: Boolean) {
+                        isPlaying = playing
+                    }
+                }
+                exoPlayer.addListener(listener)
+
+                onDispose {
+                    exoPlayer.removeListener(listener)
+                }
             }
 
             // Uploading media list
@@ -101,9 +124,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            LaunchedEffect(isPlaying, currentMedia) {
-                if (currentMedia != null) {
-                    exoPlayer.playWhenReady = isPlaying
+            // Uploading theme
+            LaunchedEffect(Unit) {
+                mediaRepository.getTheme().collect { isDark ->
+                    isDarkTheme = isDark
+                    isThemeLoaded = true
                 }
             }
 
@@ -150,19 +175,21 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            MaterialTheme {
+            AVibeTheme(isDarkTheme, dynamicColor = false) {
                 Box(modifier = Modifier.fillMaxSize()) {
+                    if (!isThemeLoaded) return@AVibeTheme
+
                     LibraryScreen(
                         items = mediaList,
                         isPlayerVisible = currentMedia != null,
                         onItemClick = { item ->
-                            val mediaItems = mediaList.map { item ->
+                            val mediaItems = mediaList.map { mediaItem ->
                                 androidx.media3.common.MediaItem.Builder()
-                                    .setUri(item.uri)
+                                    .setUri(mediaItem.uri)
                                     .setMediaMetadata(
                                         androidx.media3.common.MediaMetadata.Builder()
-                                            .setTitle(item.name)
-                                            .setArtist(item.type.name)
+                                            .setTitle(mediaItem.name)
+                                            .setArtist(mediaItem.type.name)
                                             .build()
                                     )
                                     .build()
@@ -191,6 +218,14 @@ class MainActivity : ComponentActivity() {
                             lifecycleScope.launch {
                                 mediaRepository.renameMediaItem(item.id, newName)
                             }
+                        },
+                        isDarkTheme = isDarkTheme,
+                        onThemeToggle = {
+                            val newValue = !isDarkTheme
+                            isDarkTheme = newValue
+                            lifecycleScope.launch {
+                                mediaRepository.saveTheme(newValue)
+                            }
                         }
                     )
 
@@ -206,7 +241,8 @@ class MainActivity : ComponentActivity() {
                                 showAddDialog = false
                                 pickerLauncher.launch(arrayOf("video/mp4", "video/*"))
                             },
-                            onDismiss = { showAddDialog = false }
+                            onDismiss = { showAddDialog = false },
+                            isDarkTheme = isDarkTheme
                         )
                     }
 
@@ -218,8 +254,12 @@ class MainActivity : ComponentActivity() {
                             MiniPlayer(
                                 media = currentMedia,
                                 isPlaying = isPlaying,
-                                onPlayPause = { isPlaying = !isPlaying },
-                                onClick = { showPlayer = true }
+                                onPlayPause = {
+                                    if (exoPlayer.isPlaying) exoPlayer.pause()
+                                    else exoPlayer.play()
+                                },
+                                onClick = { showPlayer = true },
+                                isDarkTheme = isDarkTheme
                             )
                         }
                     }
@@ -232,14 +272,18 @@ class MainActivity : ComponentActivity() {
                             isPlaying = isPlaying,
                             speed = speed,
                             reverb = reverb,
-                            onPlayPause = { isPlaying = !isPlaying },
+                            onPlayPause = {
+                                if (exoPlayer.isPlaying) exoPlayer.pause()
+                                else exoPlayer.play()
+                            },
                             onSpeedChange = { speed = it },
                             onReverbChange = { reverb = it },
                             onReset = {
                                 speed = 1f
                                 reverb = 0f
                             },
-                            onDismiss = { showPlayer = false }
+                            onDismiss = { showPlayer = false },
+                            isDarkTheme = isDarkTheme
                         )
                     }
                 }
@@ -316,7 +360,7 @@ class MainActivity : ComponentActivity() {
                     return null
                 }
             })
-            .setSmallIconResourceId(androidx.media3.session.R.drawable.media_session_service_notification_ic_music_note) // 🔹 Твоя иконка в res/drawable
+            .setSmallIconResourceId(androidx.media3.session.R.drawable.media_session_service_notification_ic_music_note)
             .build()
             .also { manager ->
                 manager.setPlayer(exoPlayer)

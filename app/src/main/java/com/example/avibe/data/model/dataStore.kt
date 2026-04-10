@@ -1,6 +1,7 @@
 package com.example.avibe.data.model
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -19,6 +20,7 @@ class MediaRepository(private val context: Context) {
 
     companion object {
         private val MEDIA_LIST_KEY = stringPreferencesKey("media_list")
+        private val THEME_KEY = booleanPreferencesKey("theme")
     }
 
     /**
@@ -41,7 +43,7 @@ class MediaRepository(private val context: Context) {
         }
     }
 
-    // getting media list from JSON
+    // Getting media list from JSON
     fun getMediaList(): Flow<List<MediaItem>> {
         return dataStore.data.map { preferences ->
             val jsonString = preferences[MEDIA_LIST_KEY] ?: return@map emptyList()
@@ -87,5 +89,18 @@ class MediaRepository(private val context: Context) {
             }
         }
         saveMediaList(updatedList)
+    }
+
+    /**
+     * Saving theme
+     * @param isDark is dark theme
+     */
+    suspend fun saveTheme(isDark: Boolean) {
+        dataStore.edit { it[THEME_KEY] = isDark }
+    }
+
+    // Getting theme
+    fun getTheme(): Flow<Boolean> {
+        return dataStore.data.map { it[THEME_KEY] ?: true }
     }
 }
