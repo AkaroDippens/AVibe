@@ -15,6 +15,7 @@ output-metadata.json
 *.apk
 *.aab
 *.hprof
+app/release
 
 # OS
 .DS_Store
