@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.avibe.data.model.MediaItem
 import com.example.avibe.ui.theme.NeonPurple
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 
 // Library screen for managing media
 @OptIn(ExperimentalMaterial3Api::class)
@@ -140,11 +142,11 @@ fun EmptyLibraryMessage(
     val bgColor = if (isDarkTheme) Color(0xFF0A0E27) else MaterialTheme.colorScheme.background
     val textColor = if (isDarkTheme) Color(0xFFF0F0F0) else MaterialTheme.colorScheme.onBackground
 
-    androidx.compose.foundation.layout.Box(
+    Box(
         modifier = modifier.background(bgColor),
         contentAlignment = contentAlignment
     ) {
-        androidx.compose.foundation.layout.Column(
+        Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
